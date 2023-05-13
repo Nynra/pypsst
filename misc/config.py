@@ -20,7 +20,7 @@ class Config:
     in either section, a KeyError is raised.
     """
 
-    def __init__(self, filename : str='./cli_config.ini') -> ...:
+    def __init__(self, filename : str='./config.ini') -> ...:
         """
         Initialize the settings.
 

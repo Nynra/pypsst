@@ -1,14 +1,7 @@
-import sys, os
-
-# Following lines are for assigning parent directory dynamically.
-dir_path = os.path.dirname(os.path.realpath(__file__))
-parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
-sys.path.insert(0, parent_dir_path)
-
 import unittest
-from tools.contactbook import ContactBook, Contact
+from pypsst import ContactBook, Contact, Utils
 import rlp
-from tools.utils import Utils
+import os
 
 
 class TestContact(unittest.TestCase):

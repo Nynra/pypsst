@@ -1,13 +1,8 @@
-import sys, os
-#Following lines are for assigning parent directory dynamically.
-dir_path = os.path.dirname(os.path.realpath(__file__))
-parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
-sys.path.insert(0, parent_dir_path)
-
 import unittest
-from tools.utils import Utils
+from pypsst import Utils
 from Crypto.Hash import SHA256, SHA512
 from Crypto.Cipher import AES
+import os
 
 
 class TestUtils(unittest.TestCase):
@@ -73,6 +68,7 @@ class TestUtils(unittest.TestCase):
 
     def test_dir_exists(self) -> ...:
         # Test if the directory exists
+        dir_path = os.path.dirname(__file__)
         self.assertTrue(Utils.dir_exists(dir_path))
 
         # Test if the directory does not exist
