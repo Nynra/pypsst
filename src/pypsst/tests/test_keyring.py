@@ -1,16 +1,10 @@
-import sys, os
-#Following lines are for assigning parent directory dynamically.
-dir_path = os.path.dirname(os.path.realpath(__file__))
-parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
-sys.path.insert(0, parent_dir_path)
-
 import unittest
 from Crypto.PublicKey import RSA, ECC
 from Crypto.Signature import PKCS1_v1_5, eddsa
 from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES, PKCS1_OAEP
-from tools import RsaKeyring, EccKeyring
-from tools.utils import Utils
+from pypsst import RsaKeyring, EccKeyring, Utils
+import os
 
 
 class TestRsaKeyring(unittest.TestCase):
