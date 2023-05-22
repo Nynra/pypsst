@@ -62,7 +62,7 @@ class RsaKeyring:
             raise TypeError('The file must be a string, not {}'.format(type(file)))
         
         # Check if the file exists
-        if not os.path.isfile(file):
+        if not Utils.file_exists(file):
             raise FileNotFoundError('The file does not exist.')
         
         key = ''
