@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from Crypto.Hash import SHA256, SHA512
 from Crypto.Cipher import AES
+from Crypto.PublicKey import RSA, ECC
 from typing import Union
 import time
 import uuid
@@ -23,6 +24,38 @@ class Utils:
         Uses uuid4 to generate a random id.
         """
         return uuid.uuid4().hex.encode()
+
+    @staticmethod
+    def generate_rsa_keypair() -> bytes:
+        """
+        Generate a new RSA keypair.
+
+        Returns
+        -------
+        bytes
+            The generated RSA keypair.
+        """
+        key = RSA.generate(2048)
+        return key.export_key(format="PEM")
+    
+    @staticmethod
+    def generate_ecc_key(curve='P-256') -> bytes:
+        """
+        Generate a new ECC key.
+
+        Parameters
+        ----------
+        curve : str, optional
+            The curve to use. Can be p-256, p-384 or p-521. The default is
+            p-256.
+
+        Returns
+        -------
+        bytes
+            The generated ECC key.
+        """
+        # Docs say it returns bytes, but it returns a string
+        return ECC.generate(curve=curve).export_key(format="PEM").encode()
 
     @classmethod
     def hash_data(
@@ -228,3 +261,46 @@ class Utils:
         password = Utils.hash_data(password.encode(), finalize=False).digest()
         cipher = AES.new(password, AES.MODE_EAX, nonce)
         return cipher.decrypt_and_verify(ciphertext, tag)
+
+    @staticmethod
+    def rsa_key_valid(key : bytes, key_type : str = 'public') -> bool:
+        """
+        Check if the given RSA key is valid.
+
+        Parameters
+        ----------
+        key: bytes
+            The key that should be validated
+        key_type : str, optional
+            The type of the key, can be public or private
+        """
+        if not isinstance(key, bytes):
+            raise TypeError("Key must be bytes.")
+        if not isinstance(key_type, str):
+            raise TypeError("Key type must be a string.")
+        if key_type not in ['public', 'private']:
+            raise ValueError("Key type must be pu or pr.")
+
+        if key_type == 'public':
+            # Check if the key is a valid public key
+            try:
+                key = RSA.import_key(key)
+            except ValueError:
+                return False
+            
+            if key.has_private():
+                return False
+    
+        elif key_type == 'private':
+            # Check if the key is a valid private key
+            try:
+                key = RSA.import_key(key)
+            except ValueError:
+                return False
+            
+            if not key.has_private():
+                return False
+            
+        return True
+        
+

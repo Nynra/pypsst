@@ -96,14 +96,32 @@ class TestContact(unittest.TestCase):
 
 
 class TestContactBook(unittest.TestCase):
-    def setUp(self):
-        self.contactbook = ContactBook("MyPassword", None)
+    contactbook_file = "MyFile"
+    contactbook_password = "MyPassword"
 
-    def tearDown(self) -> None:
-        # Remove the file
+    def setUp(self):
+        self.contactbook = ContactBook(
+            filename=self.contactbook_file,
+            password=self.contactbook_password,
+            create_new=True,
+            contact_storage={}
+        )
+        self.contact = Contact(
+            nickname="MyNickname", public_key="MyKey", key_type="MyKeyType"
+        )
+
+    def tearDown(self) -> ...:
+        # Remove the test files
         if os.path.exists("MyFile"):
             os.remove("MyFile")
 
+        if os.path.exists("./contactbook_test.bn"):
+            os.remove("./contactbook_test.bn")
+
+        # Check if the MyPassword file exists
+        if os.path.exists("MyPassword"):
+            os.remove("MyPassword")
+            raise Exception("The password file was not removed")
 
     def test_hash(self):
         self.assertEqual(
@@ -113,42 +131,58 @@ class TestContactBook(unittest.TestCase):
 
     def test_eq(self):
         # Test with default attributes
-        contactbook = ContactBook("MyPassword", None)
+        contactbook = ContactBook(
+            password=self.contactbook_password,
+            filename=self.contactbook_file,
+            create_new=True,
+        )
         self.assertEqual(self.contactbook, contactbook)
 
     def test_iter(self):
-        # Test with default attributes
-        contact = Contact("MyNickname", "MyKey", "MyKeyType")
-        self.contactbook.add_contact(contact)
+        contact2 = Contact(nickname="MyNickname2", public_key="MyKey2", key_type="RSA")
+        self.contactbook._contacts = {
+            self.contact.nickname: self.contact,
+            contact2.nickname: contact2,
+        }
 
-        for contact in self.contactbook:
-            self.assertEqual(contact, contact)
+        seen1 = False
+        seen2 = False
+        for stored_contact in self.contactbook:
+            if stored_contact == self.contact:
+                seen1 = True
+            elif stored_contact == contact2:
+                seen2 = True
+
+        self.assertTrue(seen1)
+        self.assertTrue(seen2)
 
     def test_len(self):
-        # Test with default attributes
-        contact = Contact("MyNickname", "MyKey", "MyKeyType")
-        self.contactbook.add_contact(contact)
-
+        self.contactbook._contacts = {self.contact.nickname: self.contact}
         self.assertEqual(len(self.contactbook), 1)
 
         for i in range(10):
-            c = Contact("MyNickname{}".format(i), "MyKey{}".format(i), "MyKeyType{}".format(i))
-            self.contactbook.add_contact(c)
+            c = Contact(
+                "MyNickname{}".format(i), "MyKey{}".format(i), "MyKeyType{}".format(i)
+            )
+            self.contactbook._contacts[c.nickname] = c
 
         self.assertEqual(len(self.contactbook), 11)
 
     def test_add_one_default_contact(self):
-        contact = Contact("MyNickname", "MyKey", "MyKeyType")
-        self.contactbook.add_contact(contact)
-
-        self.assertEqual(self.contactbook._contacts, {"MyNickname": contact})
+        self.contactbook.add_contact(self.contact)
+        self.assertEqual(
+            self.contactbook._contacts, {self.contact.nickname: self.contact}
+        )
 
     def test_add_one_additional_contact(self):
         contact = Contact(
-            "MyNickname", "MyKey", "MyKeyType", attr1="value1", attr2="value2"
+            nickname="MyNickname",
+            public_key="MyKey",
+            key_type="MyKeyType",
+            attr1="value1",
+            attr2="value2",
         )
         self.contactbook.add_contact(contact)
-
         self.assertEqual(self.contactbook._contacts, {"MyNickname": contact})
 
     def test_add_lots_of_default_contacts(self):
@@ -158,7 +192,18 @@ class TestContactBook(unittest.TestCase):
             )
             self.contactbook.add_contact(contact)
 
-        self.assertEqual(len(self.contactbook._contacts), 100)
+        self.assertEqual(len(self.contactbook._contacts.keys()), 100)
+
+        # Check if all the contacts were added
+        for i in range(100):
+            self.assertTrue(
+                self.contactbook._contacts["MyNickname{}".format(i)]
+                == Contact(
+                    nickname="MyNickname{}".format(i),
+                    public_key="MyKey{}".format(i),
+                    key_type="MyKeyType{}".format(i),
+                )
+            )
 
     def test_add_lots_of_additional_contacts(self):
         for i in range(100):
@@ -167,33 +212,49 @@ class TestContactBook(unittest.TestCase):
                 "MyKey{}".format(i),
                 "MyKeyType{}".format(i),
                 attr1="value{}".format(i),
-                attr2="value{}".format(i*2),
-                attr3="value{}".format(i*3),
+                attr2="value{}".format(i * 2),
+                attr3="value{}".format(i * 3),
             )
             self.contactbook.add_contact(contact)
 
-        self.assertEqual(len(self.contactbook._contacts), 100)
+        self.assertEqual(len(self.contactbook._contacts.keys()), 100)
+
+        # Check if all the contacts were added
+        for i in range(100):
+            self.assertTrue(
+                self.contactbook._contacts["MyNickname{}".format(i)] 
+                == Contact(
+                    nickname="MyNickname{}".format(i),
+                    public_key="MyKey{}".format(i),
+                    key_type="MyKeyType{}".format(i),
+                    attr1="value{}".format(i),
+                    attr2="value{}".format(i * 2),
+                    attr3="value{}".format(i * 3),
+                )
+            )
 
     def test_save_and_load_contacts(self):
         contracts = []
         for i in range(10):
             contact = Contact(
-                "MyNickname{}".format(i), "MyKey{}".format(i), "MyKeyType{}".format(i)
+                nickname="MyNickname{}".format(i), 
+                public_key="MyKey{}".format(i), 
+                key_type="MyKeyType{}".format(i)
             )
             contracts.append(contact)
-            self.contactbook.add_contact(contact)
+            self.contactbook._contacts[contact.nickname] = contact
 
         self.assertTrue(len(self.contactbook._contacts.keys()), 10)
-        self.contactbook.save_contacts(filename="./contactbook_test.bn", password="MyPassword")
+        self.contactbook.save_contacts(
+            filename="./contactbook_test.bn", password="MyPassword"
+        )
 
         # Check if the file was created
         self.assertTrue(os.path.exists("./contactbook_test.bn"))
-        
-        # Load the contacts
-        contactbook = ContactBook("MyPassword", "./contactbook_test.bn")
 
-        # Delete the file
-        os.remove("./contactbook_test.bn")
+        # Load the contacts
+        contactbook = ContactBook(password="MyPassword", 
+                                  filename="./contactbook_test.bn")
 
         self.assertEqual(len(contactbook._contacts.keys()), 10)
         for contact in contracts:
@@ -213,23 +274,39 @@ class TestContactBook(unittest.TestCase):
             contracts.append(contact)
             self.contactbook.add_contact(contact)
 
-        self.contactbook.save_contacts(filename="./contactbook_test.bn", password="MyPassword")
+        self.contactbook.save_contacts(
+            filename="./contactbook_test.bn", password="MyPassword"
+        )
 
         # Check if the file was created
         self.assertTrue(os.path.exists("./contactbook_test.bn"))
 
         # Load the contacts
-        contactbook = ContactBook("MyPassword", "./contactbook_test.bn")
+        contactbook = ContactBook(password="MyPassword", 
+                                  filename="./contactbook_test.bn")
         self.assertEqual(len(contactbook._contacts.keys()), 10)
         for contact in contracts:
             self.assertEqual(contactbook._contacts[contact.nickname], contact)
 
     def test_encode_rlp(self):
-        # Test with default attributes
-        contact = Contact("MyNickname", "MyKey", "MyKeyType")
-        self.contactbook.add_contact(contact)
-
+        self.contactbook._contacts = {self.contact.nickname: self.contact}
         expected = rlp.encode(
-            [[k.encode(), v.encode_rlp()] for k, v in self.contactbook._contacts.items()]
+            [
+                [k.encode(), v.encode_rlp()]
+                for k, v in self.contactbook._contacts.items()
+            ]
+        )
+        self.assertEqual(self.contactbook._encode_rlp(), expected)
+
+    def test_encode_rlp_additional(self):
+        contact = Contact(
+            "MyNickname", "MyKey", "MyKeyType", attr1="value1", attr2="value2"
+        )
+        self.contactbook._contacts = {contact.nickname: contact}
+        expected = rlp.encode(
+            [
+                [k.encode(), v.encode_rlp()]
+                for k, v in self.contactbook._contacts.items()
+            ]
         )
         self.assertEqual(self.contactbook._encode_rlp(), expected)

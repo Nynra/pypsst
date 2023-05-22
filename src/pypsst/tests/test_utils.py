@@ -1,11 +1,17 @@
 import unittest
 from pypsst import Utils
+from Crypto.PublicKey import RSA, ECC
 from Crypto.Hash import SHA256, SHA512
 from Crypto.Cipher import AES
 import os
 
 
 class TestUtils(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> ...:
+        # Generate an RSA keypair
+        cls.rsa_keypair = RSA.generate(2048)
 
     def test_get_timestamp(self) -> ...:
         # Get the timestamp
@@ -18,6 +24,28 @@ class TestUtils(unittest.TestCase):
         id = Utils.get_id()
         self.assertIsInstance(id, bytes)
         self.assertEqual(len(id), 32)
+
+    def test_generate_rsa_keypair(self) -> ...:
+        # Generate a RSA keypair
+        keypair = Utils.generate_rsa_keypair()
+        self.assertIsInstance(keypair, bytes)
+
+        # Try loading the keypair
+        new_keypair = RSA.import_key(keypair)
+
+        # Check if the keys match
+        self.assertEqual(keypair, new_keypair.export_key(format="PEM"))
+
+    def test_generate_ecc_key(self) -> ...:
+        # Generate a ECC key
+        key = Utils.generate_ecc_key()
+        self.assertIsInstance(key, bytes)
+
+        # Try loading the key
+        new_key = ECC.import_key(key)
+
+        # Check if the keys match
+        self.assertEqual(key, new_key.export_key(format="PEM").encode())
 
     def test_sha256(self) -> ...:
         # Hash some data with finalize
@@ -90,3 +118,22 @@ class TestUtils(unittest.TestCase):
         encrypted = Utils.encrypt(data, password)
         result = Utils.decrypt(encrypted, password)
         self.assertEqual(result, data)
+
+    def test_rsa_public_key_valid(self):
+        # Test if the public key is valid
+        public_key = self.rsa_keypair.publickey().export_key(format="PEM")
+        self.assertTrue(Utils.rsa_key_valid(public_key, key_type='public'))
+
+        # Test if the public key is not valid
+        self.assertFalse(Utils.rsa_key_valid(b"Hello World", key_type='public'))
+
+    def test_rsa_private_key_valid(self):
+        # Test if the private key is valid
+        private_key = self.rsa_keypair.export_key(format="PEM")
+        self.assertTrue(Utils.rsa_key_valid(private_key, key_type='private'))
+
+        # Test if the private key is not valid
+        self.assertFalse(Utils.rsa_key_valid(b"Hello World", key_type='private'))
+
+        
+
