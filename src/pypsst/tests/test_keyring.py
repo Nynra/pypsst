@@ -5,6 +5,7 @@ from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES, PKCS1_OAEP
 from pypsst import RsaKeyring, EccKeyring, Utils
 import os
+import json
 
 
 class TestRsaKeyring(unittest.TestCase):
@@ -35,7 +36,6 @@ class TestRsaKeyring(unittest.TestCase):
         data_hash = Utils.hash_data(message, finalize=False)
         signature_scheme_obj = PKCS1_v1_5.new(self.genesis_key)
         expected = signature_scheme_obj.sign(data_hash)
-        expected = expected.hex().encode()
 
         self.assertEqual(signature, expected)
 
@@ -45,7 +45,6 @@ class TestRsaKeyring(unittest.TestCase):
         data_hash = Utils.hash_data(message, finalize=False)
         signature_scheme_obj = PKCS1_v1_5.new(self.genesis_key)
         signature = signature_scheme_obj.sign(data_hash)
-        signature = signature.hex().encode()
 
         self.assertTrue(
             self.wallet.signature_valid(message, signature, self.public_key)
@@ -63,41 +62,32 @@ class TestRsaKeyring(unittest.TestCase):
         self.assertEqual(pk, self.public_key)
         self.assertIsInstance(pk, bytes)
 
-    def test_encrypt(self):
-        # Create a keypair for the recipient
-        recipient_key = RSA.generate(2048)
-        recipient_public_key = recipient_key.public_key().exportKey("PEM")
-
+    def test_encrypt_decrypt_to_self(self):
         # Encrypt the message
         message = b"Hello World"
-        encrypted_message = self.wallet.encrypt(message, recipient_public_key)
-
-        # Decrypt the message
-        enc_session_key, nonce, tag, ciphertext = encrypted_message
-        cipher_rsa = PKCS1_OAEP.new(recipient_key)
-        session_key = cipher_rsa.decrypt(enc_session_key)
-
-        cipher_aes = AES.new(session_key, AES.MODE_EAX, nonce)
-        data = cipher_aes.decrypt_and_verify(ciphertext, tag)
-
-        self.assertEqual(data, message)
-
-    def test_decrypt(self):
-        # Encrypt the message
-        message = b"Hello World"
-        receiver_key = RSA.importKey(self.wallet.public_key)
-        session_key = get_random_bytes(16)
-        cipher_rsa = PKCS1_OAEP.new(receiver_key)
-        enc_session_key = cipher_rsa.encrypt(session_key)
-
-        cipher_aes = AES.new(session_key, AES.MODE_EAX)
-        ciphertext, tag = cipher_aes.encrypt_and_digest(message)
-        encrypted_message = (enc_session_key, cipher_aes.nonce, tag, ciphertext)
+        encrypted_message = self.wallet.encrypt(message, self.public_key)
 
         # Decrypt the message
         decrypted_message = self.wallet.decrypt(encrypted_message)
 
-        self.assertEqual(decrypted_message, message)
+        self.assertEqual(message, decrypted_message)
+
+    def test_encrypt_decrypt_to_other(self):
+        # Create a keypair for the recipient
+        recipient = RsaKeyring()
+
+        # Encrypt the message
+        message = b"Hello World"
+        encrypted_message = self.wallet.encrypt(message, recipient.public_key)
+
+        # Decrypt the message
+        decrypted_message = recipient.decrypt(encrypted_message)
+
+        self.assertEqual(message, decrypted_message)
+
+        # Try to decrypt with the wrong key
+        with self.assertRaises(ValueError):
+            self.wallet.decrypt(encrypted_message)
 
 
 class TestEccKeyring(unittest.TestCase):
@@ -127,7 +117,7 @@ class TestEccKeyring(unittest.TestCase):
 
         # Verify the signature
         data_hash = Utils.hash_data(message, finalize=False, type="sha512")
-        signature_scheme_obj = eddsa.new(self.genesis_key, mode='rfc8032')
+        signature_scheme_obj = eddsa.new(self.genesis_key, mode="rfc8032")
         expected = signature_scheme_obj.sign(data_hash)
 
         self.assertEqual(signature, expected)
@@ -136,7 +126,7 @@ class TestEccKeyring(unittest.TestCase):
         # Sign the message
         message = b"Hello World"
         data_hash = Utils.hash_data(message, finalize=False, type="sha512")
-        signature_scheme_obj = eddsa.new(self.genesis_key, mode='rfc8032')
+        signature_scheme_obj = eddsa.new(self.genesis_key, mode="rfc8032")
         signature = signature_scheme_obj.sign(data_hash)
 
         self.assertTrue(

@@ -5,6 +5,7 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from typing import Union
 from .utils import Utils
 import os
+import json
 
 
 class RsaKeyring:
@@ -99,7 +100,7 @@ class RsaKeyring:
         # Create an object that can sign the data with the RSA keypair
         signature_scheme_obj = PKCS1_v1_5.new(self._key_pair)
         signature = signature_scheme_obj.sign(data_hash) # Sign the data hash with the RSA keypair
-        return signature.hex().encode()
+        return signature
 
     @staticmethod
     def signature_valid(data : bytes, signature : bytes, 
@@ -133,15 +134,15 @@ class RsaKeyring:
         signature_scheme_obj = PKCS1_v1_5.new(public_key)  # Create the signature scheme for validation
 
         # Check if when decrypting the data the datahash is recovered
-        signature = bytes.fromhex(signature.decode())
         signature_valid = signature_scheme_obj.verify(data_hash, signature)
         return signature_valid
     
-    def encrypt(self, data : bytes, receiver_public_key : bytes) -> bytes:
+    def encrypt(self, data : bytes, receiver_public_key : bytes, sign : bool=True) -> bytes:
         """
         Encrypt the data.
 
-        The data is encrypted using AES in EAX mode. The AES key is encrypted
+        The data is encrypted using AES in EAX mode and signed using the
+        private key of the sender. The AES key is encrypted
         using RSA in OAEP mode. The AES nonce and tag are appended to the
         encrypted data.
         
@@ -151,11 +152,14 @@ class RsaKeyring:
             The data to encrypt.
         receiver_public_key : bytes
             The public key of the receiver.
+        sign : bool, optional
+            Whether to sign the data or not. Defaults to True.
         
         Returns
         -------
-        tuple
-            The encrypted data, nonce, tag, and encrypted AES key.
+        dict
+            A json formatted dict containing the encrypted data, nonce, tag,
+            and encrypted AES key.
         """
         if not isinstance(data, bytes):
             raise TypeError('The data must be bytes, not {}'.format(type(data)))
@@ -172,9 +176,22 @@ class RsaKeyring:
         # Encrypt the data with the AES session key
         cipher_aes = AES.new(session_key, AES.MODE_EAX)
         ciphertext, tag = cipher_aes.encrypt_and_digest(data)
-        return enc_session_key, cipher_aes.nonce, tag, ciphertext
+        if sign:
+            signature = self.sign(ciphertext)
+        else:
+            signature = b''
+
+        data_dict = {
+            'enc_session_key': enc_session_key.hex(),
+            'nonce': cipher_aes.nonce.hex(),
+            'tag': tag.hex(),
+            'ciphertext': ciphertext.hex(),
+            'signature': signature.hex()
+        }
+
+        return json.dumps(data_dict).encode()
     
-    def decrypt(self, data : tuple) -> bytes:
+    def decrypt(self, data : bytes, sender_public_key : Union[bytes, None]=None) -> bytes:
         """
         Decrypt the data.
 
@@ -185,6 +202,9 @@ class RsaKeyring:
         ----------
         data : tuple
             The encrypted data, nonce, tag, and encrypted AES key.
+        sender_public_key : bytes, optional
+            The public key of the sender. If None, the signature will not be
+            checked.
         
         Returns
         -------
@@ -194,19 +214,35 @@ class RsaKeyring:
         Raises
         ------
         TypeError
-            If the data is not a tuple or the content is not bytes.
+            If the input data is in the wrong format.
         ValueError
-            If the data is not a tuple of length 4.
+            If the input data is missing message components or the signature
+            is not valid.
         """
-        if not isinstance(data, tuple):
-            raise TypeError('The data must be a tuple, not {}'.format(type(data)))
-        if len(data) != 4:
-            raise ValueError('The data must be a tuple of length 4, not {}'.format(len(data)))
-        for cnt, i in enumerate(data):
-            if not isinstance(i, bytes):
-                raise TypeError('The data[{}] must be bytes, not {}'.format(cnt, type(i)))
+        if not isinstance(data, bytes):
+            raise TypeError('The data must be bytes, not {}'.format(type(data)))
+        if sender_public_key is not None and not isinstance(sender_public_key, bytes):
+            raise TypeError('The sender_public_key must be bytes, not {}'.format(type(sender_public_key)))
         
-        enc_session_key, nonce, tag, ciphertext = data
+        data = json.loads(data.decode())
+        if not isinstance(data, dict):
+            raise TypeError('The data must be a dict, not {}'.format(type(data)))
+        if len(data) != 5:
+            raise ValueError('The data must be a dict of length 5, not {}'.format(len(data)))
+        
+        # Decode the values from hex
+        for k, v in data.items():
+            if not isinstance(v, str):
+                raise TypeError('The value of {} must be a string, not {}'.format(k, type(v)))
+            data[k] = bytes.fromhex(v)
+
+        enc_session_key, nonce, tag, ciphertext, signature = data.values()
+
+        # Check if the signature is valid
+        if sender_public_key is not None:
+            if not self.signature_valid(ciphertext, signature, sender_public_key):
+                raise ValueError('The signature is not valid.')
+
         # Decrypt the session key with the private RSA key
         cipher_rsa = PKCS1_OAEP.new(self._key_pair)
         session_key = cipher_rsa.decrypt(enc_session_key)
@@ -214,6 +250,7 @@ class RsaKeyring:
         # Decrypt the data with the AES session key
         cipher_aes = AES.new(session_key, AES.MODE_EAX, nonce)
         data = cipher_aes.decrypt_and_verify(ciphertext, tag)
+
         return data
 
 
