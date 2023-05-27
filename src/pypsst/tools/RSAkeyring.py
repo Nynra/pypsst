@@ -4,6 +4,7 @@ from Crypto.Random import get_random_bytes
 from Crypto.Cipher import AES, PKCS1_OAEP
 from typing import Union
 from .utils import Utils
+from .exceptions import InvalidCryptoKeyError, InvalidSignatureError
 import os
 import json
 
@@ -52,8 +53,6 @@ class RsaKeyring:
 
         Raises
         ------
-        TypeError
-            If the file is not a string.
         FileNotFoundError
             If the file does not exist.
         ValueError
@@ -104,7 +103,7 @@ class RsaKeyring:
 
     @staticmethod
     def signature_valid(data : bytes, signature : bytes, 
-            public_key : bytes) -> bool:
+            public_key : bytes, raise_exception : bool=False) -> bool:
         """
         Check if the signed data is valid.
         
@@ -116,6 +115,8 @@ class RsaKeyring:
             The signature to check.
         public_key_string : str
             The public key to check the signature with.
+        raise_exception : bool, optional
+            Whether to raise an exception if the signature is invalid. Defaults
         
         Returns
         -------
@@ -127,7 +128,9 @@ class RsaKeyring:
         if not isinstance(signature, bytes):
             raise TypeError('The signature must be bytes, not {}'.format(type(signature)))
         if not isinstance(public_key, bytes):
-            raise TypeError('The public_key must be bytes, not {}'.format(type(public_key)))    
+            raise TypeError('The public_key must be bytes, not {}'.format(type(public_key)))   
+        if not isinstance(raise_exception, bool):
+            raise TypeError('The raise_exception must be a bool, not {}'.format(type(raise_exception))) 
         
         data_hash = Utils.hash_data(data, finalize=False)  # Create the data hash for reference
         public_key = RSA.importKey(public_key)  # Import the public key into the RSA object
@@ -135,6 +138,8 @@ class RsaKeyring:
 
         # Check if when decrypting the data the datahash is recovered
         signature_valid = signature_scheme_obj.verify(data_hash, signature)
+        if not signature_valid and raise_exception:
+            raise InvalidSignatureError('The signature is not valid.')
         return signature_valid
     
     def encrypt(self, data : bytes, receiver_public_key : bytes, sign : bool=True) -> bytes:
@@ -241,7 +246,7 @@ class RsaKeyring:
         # Check if the signature is valid
         if sender_public_key is not None:
             if not self.signature_valid(ciphertext, signature, sender_public_key):
-                raise ValueError('The signature is not valid.')
+                raise InvalidSignatureError('The signature is not valid.')
 
         # Decrypt the session key with the private RSA key
         cipher_rsa = PKCS1_OAEP.new(self._key_pair)

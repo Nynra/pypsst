@@ -3,6 +3,7 @@ from Crypto.Hash import SHA256, SHA512
 from Crypto.Cipher import AES
 from Crypto.PublicKey import RSA, ECC
 from typing import Union
+from .exceptions import InvalidCryptoKeyError, InvalidSignatureError
 import time
 import uuid
 import os
@@ -37,9 +38,9 @@ class Utils:
         """
         key = RSA.generate(2048)
         return key.export_key(format="PEM")
-    
+
     @staticmethod
-    def generate_ecc_key(curve='P-256') -> bytes:
+    def generate_ecc_key(curve="P-256") -> bytes:
         """
         Generate a new ECC key.
 
@@ -170,7 +171,7 @@ class Utils:
         if filename.startswith("./"):
             filename = os.path.join(os.getcwd(), filename[2:])
         return os.path.isfile(filename)
-    
+
     @staticmethod
     def dir_exists(dirname: str) -> bool:
         """
@@ -263,7 +264,9 @@ class Utils:
         return cipher.decrypt_and_verify(ciphertext, tag)
 
     @staticmethod
-    def rsa_key_valid(key : bytes, key_type : str = 'public') -> bool:
+    def rsa_key_valid(
+        key: bytes, key_type: str = "public", raise_exeptions: bool = False
+    ) -> bool:
         """
         Check if the given RSA key is valid.
 
@@ -273,34 +276,51 @@ class Utils:
             The key that should be validated
         key_type : str, optional
             The type of the key, can be public or private
+        raise_exeptions : bool, optional
+            If True, exceptions will be raised if the key is invalid. If False,
+            False will be returned if the key is invalid. The default is False.
+
+        Returns
+        -------
+        bool
+            True if the key is valid, False otherwise.
+
+        Raises
+        ------
+        InvalidCryptoKeyError
+            If the key cannot be loaded and raise_exeptions is True.
         """
         if not isinstance(key, bytes):
             raise TypeError("Key must be bytes.")
         if not isinstance(key_type, str):
             raise TypeError("Key type must be a string.")
-        if key_type not in ['public', 'private']:
-            raise ValueError("Key type must be pu or pr.")
+        if key_type not in ["public", "private"]:
+            raise ValueError("Key type must be public or private.")
+        if not isinstance(raise_exeptions, bool):
+            raise TypeError("Raise exceptions must be a boolean.")
 
-        if key_type == 'public':
+        if key_type == "public":
             # Check if the key is a valid public key
             try:
                 key = RSA.import_key(key)
             except ValueError:
+                if raise_exeptions:
+                    raise InvalidCryptoKeyError(key, "Public key could not be loaded.")
                 return False
-            
+
             if key.has_private():
                 return False
-    
-        elif key_type == 'private':
+
+        elif key_type == "private":
             # Check if the key is a valid private key
             try:
                 key = RSA.import_key(key)
             except ValueError:
+                if raise_exeptions:
+                    raise InvalidCryptoKeyError(key, "Private could not be loaded.")
                 return False
-            
+
             if not key.has_private():
                 return False
-            
-        return True
-        
 
+        return True
