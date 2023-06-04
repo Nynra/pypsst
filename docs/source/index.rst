@@ -11,7 +11,8 @@ Welcome to PyPsst's documentation!
    :caption: Contents:
 
    installation
-   apidoc_generated/tools
+   examples
+   apidoc_generated/pypsst.tools
 
 
 
