@@ -2,7 +2,8 @@ from setuptools import setup
 
 setup(
     name="Pypsst",
-    version="0.0.3",
+    version="0.0.4",
+    author="Nynra",
     description="A Python package for simple encryption tasks",
     py_modules=["pypsst"],
     package_dir={"": "src"},

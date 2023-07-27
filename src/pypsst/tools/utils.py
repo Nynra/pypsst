@@ -7,24 +7,56 @@ from .exceptions import InvalidCryptoKeyError, InvalidSignatureError
 import time
 import uuid
 import os
+from datetime import datetime
 
 
 class Utils:
     """Some utilities that are used in multiple classes."""
-
+    
     @staticmethod
-    def get_timestamp() -> bytes:
-        """Returns the current timestamp."""
-        return str(time.time()).encode()
+    def get_timestamp_string() -> str:
+        """
+        Returns the current timestamp as a string.
+        
+        Returns
+        -------
+        timestamp : str
+            The current timestamp as a string in the format
+            YYYY-MM-DD HH:MM:SS.
+        """
+        format = "%Y-%m-%d %H:%M:%S"
+        return datetime.now().strftime(format)
 
+    @classmethod
+    def get_timestamp(cls) -> bytes:
+        """
+        Returns the current timestamp.
+        
+        Returns
+        -------
+        bytes
+            The current timestamp as bytes in the format
+            YYYY-MM-DD HH:MM:SS.
+        """
+        return cls.get_timestamp_string().encode()
+    
     @staticmethod
-    def get_id() -> bytes:
+    def get_id_string() -> str:
         """
         Returns a random id.
 
         Uses uuid4 to generate a random id.
         """
-        return uuid.uuid4().hex.encode()
+        return uuid.uuid4().hex
+    
+    @classmethod
+    def get_id(cls) -> bytes:
+        """
+        Returns a random id.
+
+        Uses uuid4 to generate a random id.
+        """
+        return cls.get_id_string().encode()
 
     @staticmethod
     def generate_rsa_keypair() -> bytes:

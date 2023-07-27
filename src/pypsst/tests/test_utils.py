@@ -13,11 +13,21 @@ class TestUtils(unittest.TestCase):
         # Generate an RSA keypair
         cls.rsa_keypair = RSA.generate(2048)
 
+    def test_get_timestamp_string(self) -> ...:
+        # Get the timestamp as a string
+        timestamp = Utils.get_timestamp_string()
+        self.assertIsInstance(timestamp, str)
+
     def test_get_timestamp(self) -> ...:
         # Get the timestamp
         timestamp = Utils.get_timestamp()
         self.assertIsInstance(timestamp, bytes)
-        self.assertGreater(float(timestamp), 0)
+
+    def test_get_id_string(self) -> ...:
+        # Get the id as a string
+        id = Utils.get_id_string()
+        self.assertIsInstance(id, str)
+        self.assertEqual(len(id), 32)
 
     def test_get_id(self) -> ...:
         # Get the id
