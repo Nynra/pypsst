@@ -12,9 +12,10 @@ from datetime import datetime
 
 class Utils:
     """Some utilities that are used in multiple classes."""
+    DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
     
-    @staticmethod
-    def get_timestamp_string() -> str:
+    @classmethod
+    def get_timestamp_string(cls) -> str:
         """
         Returns the current timestamp as a string.
         
@@ -24,8 +25,7 @@ class Utils:
             The current timestamp as a string in the format
             YYYY-MM-DD HH:MM:SS.
         """
-        format = "%Y-%m-%d %H:%M:%S"
-        return datetime.now().strftime(format)
+        return datetime.now().strftime(format=cls.DATETIME_FORMAT)
 
     @classmethod
     def get_timestamp(cls) -> bytes:
