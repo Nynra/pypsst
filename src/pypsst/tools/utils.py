@@ -7,13 +7,19 @@ from .exceptions import InvalidCryptoKeyError, InvalidSignatureError
 import time
 import uuid
 import os
-from datetime import datetime
+
+try:
+    # For Django
+    import django.utils.timezone as datetime
+except ImportError:
+    from datetime import datetime
 
 
 class Utils:
     """Some utilities that are used in multiple classes."""
-    DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-    
+    # Include the timezone in the format
+    DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S %z"
+
     @classmethod
     def get_timestamp_string(cls) -> str:
         """
@@ -26,6 +32,18 @@ class Utils:
             YYYY-MM-DD HH:MM:SS.
         """
         return datetime.now().strftime(format=cls.DATETIME_FORMAT)
+    
+    @classmethod
+    def get_datetime_stamp(cls) -> datetime:
+        """
+        Returns the current timestamp as a datetime object.
+        
+        Returns
+        -------
+        timestamp : datetime
+            The current timestamp as a datetime object.
+        """
+        return datetime.now()
 
     @classmethod
     def get_timestamp(cls) -> bytes:
@@ -39,6 +57,23 @@ class Utils:
             YYYY-MM-DD HH:MM:SS.
         """
         return cls.get_timestamp_string().encode()
+    
+    @classmethod
+    def from_timstamp_string(cls, timestamp: str) -> datetime:
+        """
+        Convert a timestamp string to a datetime object.
+
+        Parameters
+        ----------
+        timestamp : str
+            The timestamp string to convert.
+
+        Returns
+        -------
+        datetime
+            The converted timestamp.
+        """
+        return datetime.datetime.strptime(timestamp, cls.DATETIME_FORMAT)
     
     @staticmethod
     def get_id_string() -> str:

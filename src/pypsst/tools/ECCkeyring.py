@@ -1,5 +1,5 @@
-from Crypto.PublicKey import ECC
-from Crypto.Signature import eddsa
+from ecies.utils import generate_eth_key, generate_key
+from ecies import encrypt, decrypt
 from .utils import Utils
 from typing import Union
 import os
@@ -22,28 +22,20 @@ class EccKeyring:
         if key_file is not None:
             self.from_key(key_file)
         else:
-            self._key_pair = self.generate_keypair()
+            # Generate a new key if no key file was provided
+            self._encryption_keypair = generate_eth_key()
 
     @property
-    def public_key_string(self) -> str:
+    def encryption_public_key_string(self) -> str:
         """Get the public key string."""
         # Export the public key from the keypare as a utf-8 string
-        return self._key_pair.public_key().export_key(format="PEM")
+        return self._encryption_key_pair.public_key.to_hex()
 
     @property
-    def public_key(self) -> bytes:
+    def encryption_public_key(self) -> bytes:
         """Get the public key."""
         # Export the public key from the keypare as a utf-8 string
-        return self._key_pair.public_key().export_key(format="PEM").encode()
-
-    def generate_keypair(self) -> ECC:
-        """
-        Generate a new RSA keypair.
-        
-        A new keypair will be generated every time this function is called.
-        The keypair will be of curve type ed25519.
-        """
-        return ECC.generate(curve="ed25519")
+        return self._encryption_key_pair.public_key.format(True)
 
     def from_key(self, file: str) -> ...:
         """
@@ -71,6 +63,9 @@ class EccKeyring:
             raise FileNotFoundError("The file {} does not exist.".format(file))
         
         key = ""
+
+        raise NotImplementedError("This function is not implemented yet.")
+    
         with open(file, "rt") as keyfile:
             key = ECC.import_key(keyfile.read())
 
@@ -79,32 +74,12 @@ class EccKeyring:
             raise ValueError("The key is not a private key.")
         self._key_pair = key
 
-    def sign(self, data: Union[bytes, dict]) -> bytes:
-        """
-        Sign the data.
-
-        Parameters
-        ----------
-        data : bytes or dict
-            The data to sign. If dict, it will be converted to bytes. All
-            values in the dict should either be bytes or str.
-
-        Returns
-        -------
-        bytes
-            The signature.
-        """
-        if not isinstance(data, (bytes, dict)):
+    def sign(self, data: bytes) -> bytes:
+        """Sign the data."""
+        if not isinstance(data, bytes):
             raise TypeError("The data must be bytes, not {}".format(type(data)))
-        if isinstance(data, dict):
-            # Convert the dict to bytes
-            data = str(data).encode()
 
-        data_hash = Utils.hash_data(data, finalize=False, type="sha512")
-        # Create an object that can sign the data with the RSA keypair
-        signature_scheme_obj = eddsa.new(self._key_pair, mode="rfc8032")
-        signature = signature_scheme_obj.sign(data_hash)
-        return signature
+        raise NotImplementedError("This function is not implemented yet.")
 
     @staticmethod
     def signature_valid(data: bytes, signature: bytes, public_key: bytes) -> bool:
@@ -125,6 +100,8 @@ class EccKeyring:
         bool
             True if the signature is valid, False otherwise.
         """
+
+        raise NotImplementedError("This function is not implemented yet.")
         if not isinstance(data, bytes):
             raise TypeError("The data must be bytes, not {}".format(type(data)))
         if not isinstance(signature, bytes):
@@ -147,8 +124,23 @@ class EccKeyring:
         except ValueError:
             return False
         
-    def encrypt(self, *args, **kwargs) -> ...:
-        raise NotImplementedError("ECC cannot be used for encryption unless a key exchange is done.")
-    
-    def decrypt(self, *args, **kwargs) -> ...:
-        raise NotImplementedError("ECC cannot be used for encryption unless a key exchange is done.")
+    def encrypt(self, message: bytes, receiver_public_key: bytes) -> bytes:
+        """
+        Encrypt the message.
+
+        For now signing is not yet implemented
+        """
+        if not isinstance(message, bytes):
+            raise TypeError("The message must be bytes, not {}".format(type(message)))
+        if not isinstance(receiver_public_key, bytes):
+            raise TypeError(
+                "The receiver_public_key must be bytes, not {}".format(
+                    type(receiver_public_key)
+                )
+            )
+
+        return encrypt(receiver_public_key, message)
+
+    def decrypt(self, encrypted: bytes) -> ...:
+        """Decrypt the message."""
+        return decrypt(self._encryption_keypair.to_hex(), encrypted)
