@@ -10,6 +10,10 @@ class EccKeyring:
         """
         Initialize the ECC tools.
 
+        The ECC keyring uses different keypairs for encryption and authentication.
+        This is done to prevent attacks on the private key by comparing the authenticated
+        and encrypted messages.
+
         Parameters
         ----------
         key_file : str, optional
@@ -24,6 +28,7 @@ class EccKeyring:
         else:
             # Generate a new key if no key file was provided
             self._encryption_keypair = generate_eth_key()
+            self._authentication_keypair = generate_key()
 
     @property
     def encryption_public_key_string(self) -> str:
@@ -36,6 +41,18 @@ class EccKeyring:
         """Get the public key."""
         # Export the public key from the keypare as a utf-8 string
         return self._encryption_key_pair.public_key.format(True)
+    
+    @property
+    def authentication_public_key_string(self) -> str:
+        """Get the public key string."""
+        # Export the public key from the keypare as a utf-8 string
+        return self._authentication_key_pair.public_key.to_hex()
+    
+    @property
+    def authentication_public_key(self) -> bytes:
+        """Get the public key."""
+        # Export the public key from the keypare as a utf-8 string
+        return self._authentication_key_pair.public_key.format(True)
 
     def from_key(self, file: str) -> ...:
         """
@@ -79,7 +96,7 @@ class EccKeyring:
         if not isinstance(data, bytes):
             raise TypeError("The data must be bytes, not {}".format(type(data)))
 
-        raise NotImplementedError("This function is not implemented yet.")
+        self._authentication_keypair.sign(data)
 
     @staticmethod
     def signature_valid(data: bytes, signature: bytes, public_key: bytes) -> bool:
