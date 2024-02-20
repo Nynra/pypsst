@@ -35,7 +35,7 @@ class InvalidSignatureError(Exception):
         return 'Signature {} is invalid. {}'.format(self.signature, self.msg)
     
 
-class InvalidCryptoKeyError(Exception):
+class InvalidKeyError(Exception):
     """Raised when a cryptographic key is invalid"""
 
     def __init__(self, key : bytes, msg : str=...) -> ...:

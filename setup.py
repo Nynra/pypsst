@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name="Pypsst",
+    name="pypsst",
     version="0.0.4",
     author="Nynra",
     description="A Python package for simple encryption tasks",

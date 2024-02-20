@@ -3,7 +3,7 @@ from Crypto.Hash import SHA256, SHA512
 from Crypto.Cipher import AES
 from Crypto.PublicKey import RSA, ECC
 from typing import Union
-from .exceptions import InvalidCryptoKeyError, InvalidSignatureError
+from .exceptions import InvalidSignatureError
 import time
 import uuid
 import os
@@ -372,7 +372,7 @@ class Utils:
                 key = RSA.import_key(key)
             except ValueError:
                 if raise_exeptions:
-                    raise InvalidCryptoKeyError(key, "Public key could not be loaded.")
+                    raise KeyError(key, "Public key could not be loaded.")
                 return False
 
             if key.has_private():
@@ -384,7 +384,7 @@ class Utils:
                 key = RSA.import_key(key)
             except ValueError:
                 if raise_exeptions:
-                    raise InvalidCryptoKeyError(key, "Private could not be loaded.")
+                    raise KeyError(key, "Private could not be loaded.")
                 return False
 
             if not key.has_private():
