@@ -25,6 +25,7 @@ class TestRsaKeyPair(unittest.TestCase):
         cls.public_key_id = uuid.uuid4().hex
 
     def setUp(self):
+        super().setUp()
         self.wallet = RsaKeyPair(_generate_keys=False)
         self.wallet._key_pair = self.genesis_key
         self.wallet._nickname = self.public_key_id
