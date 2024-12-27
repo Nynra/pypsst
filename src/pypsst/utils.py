@@ -3,7 +3,6 @@ from Crypto.Hash import SHA256, SHA512
 from Crypto.Cipher import AES
 from Crypto.PublicKey import RSA, ECC
 from typing import Union
-from .exceptions import InvalidSignatureError
 import time
 import uuid
 import os
@@ -17,6 +16,7 @@ except ImportError:
 
 class Utils:
     """Some utilities that are used in multiple classes."""
+
     # Include the timezone in the format
     DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S %z"
 
@@ -24,7 +24,7 @@ class Utils:
     def get_timestamp_string(cls) -> str:
         """
         Returns the current timestamp as a string.
-        
+
         Returns
         -------
         timestamp : str
@@ -32,12 +32,12 @@ class Utils:
             YYYY-MM-DD HH:MM:SS.
         """
         return datetime.now().strftime(format=cls.DATETIME_FORMAT)
-    
+
     @classmethod
     def get_datetime_stamp(cls) -> datetime:
         """
         Returns the current timestamp as a datetime object.
-        
+
         Returns
         -------
         timestamp : datetime
@@ -49,7 +49,7 @@ class Utils:
     def get_timestamp(cls) -> bytes:
         """
         Returns the current timestamp.
-        
+
         Returns
         -------
         bytes
@@ -57,7 +57,7 @@ class Utils:
             YYYY-MM-DD HH:MM:SS.
         """
         return cls.get_timestamp_string().encode()
-    
+
     @classmethod
     def from_timstamp_string(cls, timestamp: str) -> datetime:
         """
@@ -74,7 +74,7 @@ class Utils:
             The converted timestamp.
         """
         return datetime.datetime.strptime(timestamp, cls.DATETIME_FORMAT)
-    
+
     @staticmethod
     def get_id_string() -> str:
         """
@@ -83,7 +83,7 @@ class Utils:
         Uses uuid4 to generate a random id.
         """
         return uuid.uuid4().hex
-    
+
     @classmethod
     def get_id(cls) -> bytes:
         """

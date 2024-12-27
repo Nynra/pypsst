@@ -1,4 +1,4 @@
-from pypsst.tools.rsa_tools import RsaKeyPair
+from pypsst import RsaKeyPair
 
 
 # Step 1: Generate an RSA key pair.
