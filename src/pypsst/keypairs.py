@@ -6,7 +6,7 @@ from Crypto.Signature import pkcs1_15
 from typing import Any
 import json
 from .base import AbstractKeyPair, AbstractAuthKeyPair, AbstractEncKeyPair
-from utils import Utils
+from .utils import Utils
 from uuid import uuid4
 import os
 
@@ -398,3 +398,43 @@ class RsaKeyPair(AbstractKeyPair):
                 "private_key": self._key_pair.export_key(passphrase=passphrase).hex(),
             }
         )
+
+
+class RsaAuthKeyPair(RsaKeyPair, AbstractAuthKeyPair):
+    """A class to represent an RSA authentication keypair."""
+
+    def __init__(self, nickname: str = None, _generate_keys: bool = True) -> ...:
+        super().__init__(nickname, _generate_keys)
+
+    def __str__(self) -> str:
+        return f"RsaAuthKeyPair(nickname={self._nickname})"
+
+    def __repr__(self) -> str:
+        return f"RsaAuthKeyPair(nickname={self._nickname}, public_key={self.public_key_string})"
+
+    def encrypt(self, data, receiver_public_key):
+        raise NotImplementedError("Cannot encrypt data with an authentication keypair.")
+
+    def decrypt(self, data: bytes, sender_public_key: bytes) -> bytes:
+        raise NotImplementedError("Cannot decrypt data with an authentication keypair.")
+
+
+class RsaEncKeyPair(RsaKeyPair, AbstractEncKeyPair):
+    """A class to represent an RSA encryption keypair."""
+
+    def __init__(self, nickname: str = None, _generate_keys: bool = True) -> ...:
+        super().__init__(nickname, _generate_keys)
+
+    def __str__(self) -> str:
+        return f"RsaEncKeyPair(nickname={self._nickname})"
+
+    def __repr__(self) -> str:
+        return f"RsaEncKeyPair(nickname={self._nickname}, public_key={self.public_key_string})"
+
+    def sign(self, data: bytes) -> bytes:
+        raise NotImplementedError("Cannot sign data with an encryption keypair.")
+
+    def signature_valid(
+        self, data: bytes, signature: bytes, public_key: bytes = None
+    ) -> bool:
+        raise NotImplementedError("Cannot verify signature with an encryption keypair.")
